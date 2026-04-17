@@ -15,7 +15,6 @@ def home():
     return "Boten pingar och är vaken!"
 
 def run():
-    # Render tilldelar port dynamiskt
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -28,7 +27,13 @@ def keep_alive():
 TELEGRAM_TOKEN = '8192692732:AAEDEbW9up1n_P_m6UC9VIDaDP09HTVckHk'
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+# Ändrade headers för att lura Sofascores skydd ännu mer
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Origin': 'https://www.sofascore.com',
+    'Referer': 'https://www.sofascore.com/'
+}
 FLAT_UNIT = 1.5
 
 def clean_val(v):
@@ -37,14 +42,37 @@ def clean_val(v):
         return float(v) if v else 0
     except: return 0
 
+# --- FUSKPAPPER: DIREKTA LAG-ID (Kringgår sökblockeringen) ---
+def get_team_info(team_name):
+    teams = {
+        'malmö': (1888, 'Malmö FF'), 'mff': (1888, 'Malmö FF'),
+        'aik': (1892, 'AIK'),
+        'brommapojkarna': (1881, 'IF Brommapojkarna'), 'bp': (1881, 'IF Brommapojkarna'),
+        'djurgården': (1883, 'Djurgårdens IF'), 'dif': (1883, 'Djurgårdens IF'),
+        'hammarby': (1887, 'Hammarby IF'), 'bajen': (1887, 'Hammarby IF'),
+        'elfsborg': (1885, 'IF Elfsborg'),
+        'häcken': (1886, 'BK Häcken'), 'bkh': (1886, 'BK Häcken'),
+        'halmstad': (1890, 'Halmstads BK'), 'hbk': (1890, 'Halmstads BK'),
+        'värnamo': (6867, 'IFK Värnamo'),
+        'göteborg': (1884, 'IFK Göteborg'), 'ifk göteborg': (1884, 'IFK Göteborg'), 'blåvitt': (1884, 'IFK Göteborg'),
+        'sirius': (1916, 'IK Sirius'),
+        'mjällby': (1902, 'Mjällby AIF'), 'maif': (1902, 'Mjällby AIF'),
+        'västerås': (1896, 'Västerås SK'), 'vsk': (1896, 'Västerås SK'),
+        'kalmar': (1891, 'Kalmar FF'), 'kff': (1891, 'Kalmar FF'),
+        'gais': (1882, 'GAIS'),
+        'norrköping': (1889, 'IFK Norrköping'), 'peking': (1889, 'IFK Norrköping')
+    }
+    return teams.get(team_name.lower().strip())
+
 # --- FUNKTION 1: KORREKTA STATS ---
 def get_basic_stats(team_name):
     try:
-        search = requests.get(f"https://api.sofascore.com/api/v1/search/all?q={team_name}", headers=HEADERS).json()
-        team = next(r['entity'] for r in search.get('results', []) if r.get('entity', {}).get('sport', {}).get('name') == 'Football')
-        t_id, t_name = team['id'], team['name']
+        info = get_team_info(team_name)
+        if not info:
+            return f"❌ Hittar inte '{team_name}'. Kolla stavningen eller använd vanliga smeknamn (t.ex. AIK, MFF, Bajen)."
         
-        events = requests.get(f"https://api.sofascore.com/api/v1/team/{t_id}/events/last/0", headers=HEADERS).json().get('events', [])
+        t_id, t_name = info
+        events = requests.get(f"https://api.sofascore.com/api/v1/team/{t_id}/events/last/0", headers=HEADERS, timeout=10).json().get('events', [])
         
         match_log = []
         res = {
@@ -102,9 +130,10 @@ def get_basic_stats(team_name):
 # --- FUNKTION 2: MATCH-STATS & UTRÄKNINGAR ---
 def get_match_stats(team_name, is_home, mode):
     try:
-        search = requests.get(f"https://api.sofascore.com/api/v1/search/all?q={team_name}", headers=HEADERS, timeout=10).json()
-        team = next(r['entity'] for r in search.get('results', []) if r.get('entity', {}).get('sport', {}).get('name') == 'Football')
-        t_id, t_name = team['id'], team['name']
+        info = get_team_info(team_name)
+        if not info: return None
+        t_id, t_name = info
+
         events = requests.get(f"https://api.sofascore.com/api/v1/team/{t_id}/events/last/0", headers=HEADERS, timeout=10).json().get('events', [])
 
         stats = {'total_f': [], 'total_a': [], 'spec_f': [], 'spec_a': []}
@@ -163,6 +192,9 @@ def handle_all(user_input):
 
             home = get_match_stats(teams[0].strip(), True, mode)
             away = get_match_stats(teams[1].strip(), False, mode)
+
+            if not home or not away:
+                return "❌ Kunde inte hämta stats för något av lagen. Kolla stavningen!"
 
             exp_h = (home['offense'] + away['defense']) / 2
             exp_a = (away['offense'] + home['defense']) / 2
