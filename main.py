@@ -97,7 +97,7 @@ def get_basic_stats(team_name):
 
         log_str = "\n".join(match_log[:5])
         return (f"🇸🇪 **{t_name.upper()} (ALLSVENSKAN 2026)**\n\n📅 **SENASTE MATCHER:**\n{log_str}\n\n📊 **TOTALT ({res['total']['m']} matcher)**\n{fmt(res['total'])}\n🏠 **HEMMA ({res['home']['m']})**\n{fmt(res['home'])}\n✈️ **BORTA ({res['away']['m']})**\n{fmt(res['away'])}")
-    except Exception as e: return f"❌ Hittade inte laget eller saknar stats."
+    except Exception as e: return f"❌ Krasch! Felkod: {repr(e)}"
 
 # --- FUNKTION 2: MATCH-STATS & UTRÄKNINGAR ---
 def get_match_stats(team_name, is_home, mode):
