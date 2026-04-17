@@ -27,7 +27,6 @@ def keep_alive():
 TELEGRAM_TOKEN = '8192692732:AAEDEbW9up1n_P_m6UC9VIDaDP09HTVckHk'
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# Ändrade headers för att lura Sofascores skydd ännu mer
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'application/json, text/plain, */*',
@@ -42,7 +41,7 @@ def clean_val(v):
         return float(v) if v else 0
     except: return 0
 
-# --- FUSKPAPPER: DIREKTA LAG-ID (Kringgår sökblockeringen) ---
+# --- FUSKPAPPER: DIREKTA LAG-ID ---
 def get_team_info(team_name):
     teams = {
         'malmö': (1888, 'Malmö FF'), 'mff': (1888, 'Malmö FF'),
@@ -81,7 +80,8 @@ def get_basic_stats(team_name):
             'away': {'m':0,'f_s':0,'f_sot':0,'f_off':0,'a_s':0,'a_sot':0,'a_off':0}
         }
         
-        cutoff = datetime(2026, 1, 1).timestamp()
+        # FIX: Ändrat till 2024 istället för 2026
+        cutoff = datetime(2024, 1, 1).timestamp()
 
         for ev in events:
             if ev.get('tournament', {}).get('uniqueTournament', {}).get('id') != 40 or ev['startTimestamp'] < cutoff: continue
@@ -124,7 +124,7 @@ def get_basic_stats(team_name):
                     f"`-----------------------` \n`🛡️ Skott emot: {round(d['a_s']/m, 2)}` \n`🧤 På mål em: {round(d['a_sot']/m, 2)}` \n`🚩 Offs. em:  {round(d['a_off']/m, 2)}` \n")
 
         log_str = "\n".join(match_log[:5])
-        return (f"🇸🇪 **{t_name.upper()} (ALLSVENSKAN 2026)**\n\n📅 **SENASTE MATCHER:**\n{log_str}\n\n📊 **TOTALT ({res['total']['m']} matcher)**\n{fmt(res['total'])}\n🏠 **HEMMA ({res['home']['m']})**\n{fmt(res['home'])}\n✈️ **BORTA ({res['away']['m']})**\n{fmt(res['away'])}")
+        return (f"🇸🇪 **{t_name.upper()} (ALLSVENSKAN 2024)**\n\n📅 **SENASTE MATCHER:**\n{log_str}\n\n📊 **TOTALT ({res['total']['m']} matcher)**\n{fmt(res['total'])}\n🏠 **HEMMA ({res['home']['m']})**\n{fmt(res['home'])}\n✈️ **BORTA ({res['away']['m']})**\n{fmt(res['away'])}")
     except Exception as e: return f"❌ Krasch! Felkod: {repr(e)}"
 
 # --- FUNKTION 2: MATCH-STATS & UTRÄKNINGAR ---
@@ -137,7 +137,9 @@ def get_match_stats(team_name, is_home, mode):
         events = requests.get(f"https://api.sofascore.com/api/v1/team/{t_id}/events/last/0", headers=HEADERS, timeout=10).json().get('events', [])
 
         stats = {'total_f': [], 'total_a': [], 'spec_f': [], 'spec_a': []}
-        cutoff = datetime(2026, 1, 1).timestamp()
+        
+        # FIX: Ändrat till 2024 istället för 2026
+        cutoff = datetime(2024, 1, 1).timestamp()
 
         for ev in events:
             if ev.get('tournament', {}).get('uniqueTournament', {}).get('id') != 40 or ev['startTimestamp'] < cutoff: continue
